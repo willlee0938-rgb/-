@@ -18,7 +18,7 @@ with sync_playwright() as playwright:
     response = page.goto(os.environ.get('DRIVEOS_TEST_URL', 'http://127.0.0.1:8000/'))
     assert response.status == 200
     assert page.locator('#heading').inner_text() == '遠端媒合中心'
-    assert page.locator('#nav button').count() == 8
+    assert page.locator('#nav button').count() == 9
     page.get_by_role('button', name='產生待審核草稿', exact=True).click()
     assert page.locator('[data-post-card]').count() == 4
     while page.get_by_role('button', name='核准文案', exact=True).count():
@@ -70,6 +70,6 @@ with sync_playwright() as playwright:
     page.screenshot(path='/tmp/driveos-broker-mobile.png', full_page=True)
     assert not errors, errors
     assert not dialogs, dialogs
-    print('PASS all 8 pages, confirmed commission analytics, mobile layout and no runtime errors')
+    print('PASS all 9 pages, confirmed commission analytics, mobile layout and no runtime errors')
     context.close()
     browser.close()

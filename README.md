@@ -1,6 +1,6 @@
 # DriveOS — 中古車 AI 銷售營運工作台
 
-目前版本：V3 + 遠端媒合工作流程原型（HTML / JavaScript + localStorage）
+目前版本：V4 模組建置中（靜態前端 + 可選 Supabase 登入／雲端資料庫）
 使用者定位：遠端中古車合作銷售窗口，以 Facebook 社團 / Threads 免費流量獲客，合作車行負責現場賞車、專業說明、簽約與交車。
 
 ## 立即執行
@@ -10,7 +10,30 @@
 python3 -m http.server 8000 --bind 127.0.0.1
 ```
 
-使用瀏覽器開啟此本機服務，首頁為「遠端媒合中心」。無需安裝套件或設定 API 金鑰；HTML、兩個 JavaScript 檔和 CSS 必須放在同一個目錄。資料依瀏覽器及網址分開保存。
+使用瀏覽器開啟此本機服務，首頁為「遠端媒合中心」。儲存庫已附可直接發布的 `assets/cloud.js`；執行網站不需安裝套件。所有 HTML、JS、CSS 和 assets 目錄須一起發布，不能只下載 index.html。
+
+`config.js` 沒有雲端連線資訊時，保留本機示範模式；設定 Supabase 後，先登入才讀取該帳號的資料。新帳號不會自動帶入示範或本機客戶。
+
+**啟用雲端請閱讀 [白話設定步驟](SUPABASE_SETUP.md)。** 程式與 SQL 已實作；實際 Supabase 專案須由使用者開通及驗證。
+
+## 登入與雲端儲存
+
+- Supabase 電子郵件／密碼登入、登出、忘記密碼與重設密碼。
+- PostgreSQL 每帳號一個工作台，RLS 限制只能讀寫自己的資料。
+- 版本條件更新，避免另一個裝置用舊資料覆寫；衝突時保留草稿，下載備份後選擇載入雲端。
+- 寫入失敗會保留本機草稿並顯示狀態，重新整理後可以重試。
+- 舊本機資料由使用者確認後搬入空白帳號，不自動推定歸屬。
+- 每個帳號上限 7MB，照片優先使用 HTTPS 網址；尚無雲端照片上傳或多人共用工作台。
+
+連線設定只能放 Project URL 及公開 Publishable／anon key，不能放 secret、service_role 或資料庫密碼。資料隔離由資料庫 RLS 執行，不依賴隱藏前端畫面。
+
+## 車源匯入
+
+支援 CSV UTF-8 和 JSON，先預覽新增、更新、不變、錯誤，再確認寫入。來源名稱＋車源編號為唯一鍵，更新保留車輛 ID 和客戶／貼文關聯。
+
+不覆蓋 CRM 或轉介，不刪除檔案未出現的車。重複編號、無效資料或預覽後庫存改變會擋下整批寫入；售出或改價會撤銷文案核准與提醒。
+
+範本：[CSV](sample-inventory.csv)、[JSON](sample-inventory.json)。尚未自動抓取或連接凱爾車源。
 
 業務流程與正式自動化待辦見 [BROKER_WORKFLOW.md](BROKER_WORKFLOW.md)。
 
@@ -26,13 +49,24 @@ python3 -m http.server 8000 --bind 127.0.0.1
 
 ## 驗證
 
-使用 Node.js 24 執行現有業務規則測試：
+開發使用 Node.js 24，套件版本鎖在 package-lock.json：
 
 ```sh
-node --test tests/broker-workflow.test.cjs
+npm ci
+npm run build
+npm test
 ```
 
-環境有 Python Playwright 與 Chromium 時，可在啟動本機服務後執行 `python3 tests/browser-smoke.py`，使用獨立瀏覽器驗證完整流程。
+修改 cloud-entry.js／cloud-sync.cjs 後需重建並提交 assets/cloud.js。GitHub Pages 從 main 根目錄直接發布已提交檔案，不執行 npm 建置。
+
+測試包含業務流程、150 台車匯入、儲存失敗／衝突，以及 PGlite PostgreSQL 引擎上的 RLS、匿名拒絕與版本更新。環境有 Python Playwright 與 Chromium 時，啟動本機服務後執行：
+
+```sh
+python3 tests/browser-smoke.py
+python3 tests/cloud-browser.py
+```
+
+前者驗證 9 個頁面與媒合流程；後者使用 Supabase API 測試替身驗證登入、帳號隔離、匯入、跨裝置、失敗草稿、舊資料搬移與衝突。這些測試不代表真實 Supabase 專案已啟用；仍須依設定指南驗證實際登入、跨裝置與重設密碼。
 
 瀏覽器驗證：產生草稿 → 核准 → 安排提醒 → 修改車價確認撤銷；建立轉介 → 記錄車行成交及確認佣金 → 確認入帳。以獨立瀏覽器測試，避免污染實際資料。
 
@@ -50,7 +84,7 @@ node --test tests/broker-workflow.test.cjs
 
 ## 重要現況
 - 現在所有車源均為示範資料，不是真實車行庫存。
-- 資料只存在瀏覽器 localStorage，正式版需改為雲端資料庫。
+- 雲端未設定時，資料仍只存在瀏覽器；啟用後每個帳號以獨立 JSONB 工作台保存，尚無多人共用或即時合併修改。
 - 尚未串接合作車行網站 / API。
 - 文案目前為已知車源資料套版，尚未串接 AI 服務。
 - 尚未具備 Meta / Threads 發布功能。

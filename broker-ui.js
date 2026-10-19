@@ -15,7 +15,7 @@ var BrokerUI = (function () {
     const before = structuredClone(db);
     try {
       const result = operation();
-      localStorage.setItem(key, JSON.stringify(db));
+      DriveOSData.persist(db);
       notice = typeof message === 'function' ? message(result) : message;
       closeForm(); render();
     } catch (error) { db = before; alert(error.message); }
@@ -23,7 +23,7 @@ var BrokerUI = (function () {
   function reconcile() {
     const before = structuredClone(db);
     if (W.reconcile(db)) {
-      try { localStorage.setItem(key, JSON.stringify(db)); }
+      try { DriveOSData.persist(db); }
       catch (_) { db = before; notice = '瀏覽器儲存空間不足，請匯出備份；暫時無法儲存狀態變更。'; }
     }
   }
@@ -64,7 +64,7 @@ var BrokerUI = (function () {
     const filtered = posts.filter(p => groups[view].includes(p.status)).sort((a, b) => view === 'scheduled' ? new Date(a.scheduledAt) - new Date(b.scheduledAt) : 0);
     const labels = { review: '待審核', approved: '已核准', scheduled: '發布提醒', history: '歷史紀錄' };
     return `<div class="broker-shell"><div class="broker-hero"><h2>把客人帶進店，讓車行完成成交。</h2><p>凱爾車業提供車源，你在線上獲客與媒合。用同一個流程管理廣告、客戶交接與佣金。</p><div class="broker-flow">${['① 授權車源', '② 文案與審核', '③ 發布提醒', '④ 詢問初談', '⑤ 轉介車行', '⑥ 回報與分佣'].map(x => `<span>${x}</span>`).join('')}</div></div>
-    <div class="notice">目前為本機工作台：文案由車源資料套版產生，尚未串接 AI 或 FB／Threads 發布服務。排程只安排提醒，不會自動發文；正式排程執行器需後端與平台授權。FB 社團先保留人工發布流程，Threads 之後依官方授權能力串接。</div>
+    <div class="notice">文案由車源資料套版產生，尚未串接 AI 或 FB／Threads 發布服務。排程只安排提醒，不會自動發文；正式排程執行器需後端與平台授權。FB 社團先保留人工發布流程，Threads 之後依官方授權能力串接。</div>
     <div class="grid">${metric('待審核文案', posts.filter(p => p.status === '待審核').length + ' 篇', '先確認內容，再安排提醒')}${metric('已到發布時間', due.length + ' 篇', '待手動發布，不代表已發出')}${metric('待車行回報', deals.filter(d => ['已轉介', '已到店'].includes(d.status)).length + ' 筆', '追蹤到店與成交結果')}${metric('已入帳佣金', money(paid), '僅計入車行確認且標記入帳的金額')}</div>
     <div role="status" class="broker-note">${esc(notice)}</div>
     <section class="card broker-section"><h2>1. 批次準備廣告</h2><p class="muted">只選可售且資料完整的車；每台車各平台保留一篇進行中的草稿，避免重複建立。</p>
@@ -75,7 +75,7 @@ var BrokerUI = (function () {
     <label>FB 社團名稱<input name="facebook" placeholder="例如：已獲准刊登的汽車社團" maxlength="150"></label><label>Threads 帳號<input name="threads" placeholder="例如：你的銷售帳號" maxlength="150"></label><button type="submit" class="btn">安排已核准文案</button></form>
     <p class="hint">時間一律依台北計算，包含已存在的提醒與發布紀錄。車價、庫存、文案或平台變更時，原核准失效，需重新審核。提醒上限是你的營運設定，並非平台發布額度。</p>
     <div class="quick toolbar">${Object.entries(labels).map(([name, label]) => `<button type="button" class="btn ${view === name ? '' : 'secondary'}" data-broker-action="view" data-id="${name}" aria-pressed="${view === name}">${label}（${posts.filter(p => groups[name].includes(p.status)).length}）</button>`).join('')}</div>${cards(filtered)}</section>
-    ${referrals()}<section class="card broker-section"><h2>接上真實自動化需要的資料</h2><div class="statline"><span>凱爾車源（含售價、照片與可售狀態）</span><b>待取得授權資料</b></div><div class="statline"><span>Threads／FB 帳號及可用官方權限</span><b>尚未連接</b></div><div class="statline"><span>雲端資料庫、排程執行器與安全登入</span><b>待後端建置</b></div><p class="hint">不需要把帳號密碼或 API 金鑰填進此頁。先用這裡驗證工作流程，再接上車行授權來源及平台服務。</p></section></div>`;
+    ${referrals()}<section class="card broker-section"><h2>接上真實自動化需要的資料</h2><div class="statline"><span>凱爾車源（含售價、照片與可售狀態）</span><b>待取得授權資料</b></div><div class="statline"><span>Threads／FB 帳號及可用官方權限</span><b>尚未連接</b></div><div class="statline"><span>雲端資料庫與帳號登入</span><b>${DriveOSData.isCloud()?'已連接':'尚未設定'}</b></div><div class="statline"><span>背景排程執行器</span><b>尚未建置</b></div><p class="hint">不需要把帳號密碼或 API 金鑰填進此頁。先用這裡驗證工作流程，再接上車行授權來源及平台服務。</p></section></div>`;
   }
   function modal(title, content) {
     $('#modalroot').innerHTML = `<div class="modalback"><div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2>${content}<div class="actions">${action('關閉', 'close')}</div></div></div>`;
