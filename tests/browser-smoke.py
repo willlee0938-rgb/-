@@ -20,8 +20,8 @@ with sync_playwright() as playwright:
     page.on('dialog', lambda dialog: (dialogs.append(dialog.message), dialog.accept()))
     response = page.goto(os.environ.get('DRIVEOS_TEST_URL', 'http://127.0.0.1:8000/'))
     assert response.status == 200
-    assert page.locator('#heading').inner_text() == '遠端媒合中心'
-    assert page.locator('#nav button').count() == 10
+    assert page.locator('#heading').inner_text() == '審核與發布工作台'
+    assert page.locator('#nav button').count() == 11
     page.get_by_role('button', name='🚘　車源管理', exact=True).click()
     original_cars = page.evaluate('structuredClone(db.cars)')
     page.evaluate("db.cars.push({...db.cars[0],id:'FILTER-TEST',brand:' toyota ',model:'Yaris'});render()")
@@ -125,6 +125,6 @@ with sync_playwright() as playwright:
     page.screenshot(path='/tmp/driveos-broker-mobile.png', full_page=True)
     assert not errors, errors
     assert not dialogs, dialogs
-    print('PASS all 10 pages, confirmed commission analytics, mobile layout and no runtime errors')
+    print('PASS all 11 pages, confirmed commission analytics, mobile layout and no runtime errors')
     context.close()
     browser.close()

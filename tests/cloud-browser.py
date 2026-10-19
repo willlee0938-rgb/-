@@ -9,6 +9,7 @@ import time
 import struct
 import zlib
 import random
+import zipfile
 from urllib.parse import urlparse, parse_qs
 from playwright.sync_api import sync_playwright
 
@@ -83,6 +84,10 @@ def service(route):
             assert key.startswith(owner + '/')
             photos[key] = True
             return reply({'Key': bucket + '/' + key, 'Id': key})
+        if request.method == 'GET' and parsed.path.startswith('/storage/v1/object/' + bucket + '/'):
+            key = parsed.path.removeprefix('/storage/v1/object/' + bucket + '/')
+            assert key.startswith(owner + '/') and key in photos
+            return route.fulfill(status=200, content_type='image/png', body=png_fixture())
         if request.method == 'DELETE' and parsed.path == '/storage/v1/object/' + bucket:
             for key in payload['prefixes']:
                 assert key.startswith(owner + '/')
@@ -221,9 +226,33 @@ with sync_playwright() as p:
     page_a.get_by_role('button', name='關閉', exact=True).click()
     print('PASS large-photo compression, capacity reminder, signed display, cover, safe deletion and recovery (API double)')
 
+    page_a.get_by_role('button', name='➤　審核與發布工作台', exact=True).click()
+    page_a.get_by_role('button', name='發布位置', exact=True).click()
+    page_a.locator('#publication-target [name=name]').fill('雲端測試社團')
+    page_a.locator('#publication-target [name=url]').fill('https://www.facebook.com/groups/123/')
+    page_a.get_by_role('button', name='加入發布位置', exact=True).click()
+    saved(page_a)
+    page_a.get_by_role('button', name='文案與審核', exact=True).click()
+    page_a.get_by_role('button', name='準備這台車的雙平台文案', exact=True).click()
+    page_a.locator('[name=target]').check()
+    page_a.locator('[name=photo]').nth(1).uncheck()
+    page_a.get_by_role('button', name='核准並加入發布清單', exact=True).click()
+    saved(page_a)
+    with page_a.expect_download() as download_event:
+        page_a.get_by_role('button', name='② 下載照片與文案 ZIP', exact=True).click()
+    with zipfile.ZipFile(download_event.value.path()) as archive:
+        assert len([name for name in archive.namelist() if name.endswith('.png')]) == 1
+        assert '458,000' in archive.read('文案.txt').decode('utf-8')
+    page_a.reload()
+    page_a.wait_for_function("!document.body.classList.contains('cloud-locked')")
+    assert page_a.evaluate('DriveOSPublishing.targets(db).length') == 1
+    assert page_a.evaluate('DriveOSPublishing.deliveries(db).length') == 1
+    print('PASS cloud-saved targets, reviewed copy, selected private photo ZIP and reload (API double)')
+
     other_device, page_other, errors_other = setup(browser)
     login(page_other, 'a@test.invalid')
     assert page_other.evaluate('db.cars[0].price') == 458000
+    assert page_other.evaluate('DriveOSPublishing.deliveries(db).length') == 1
     context_b, page_b, errors_b = setup(browser)
     legacy = {'cars': [{'id': 'LEGACY-B', 'brand': 'Honda', 'model': 'Fit', 'year': 2020,
                         'price': 350000, 'mileage': 30000, 'status': '可售'}],
@@ -231,6 +260,8 @@ with sync_playwright() as p:
     page_b.evaluate('(value)=>localStorage.setItem("driveos_v1",JSON.stringify(value))', legacy)
     login(page_b, 'b@test.invalid')
     assert page_b.evaluate('db.cars.length') == 0
+    assert page_b.evaluate('DriveOSPublishing.targets(db).length') == 0
+    assert page_b.evaluate('DriveOSPublishing.deliveries(db).length') == 0
     page_b.get_by_role('button', name='帳號與同步', exact=True).click()
     page_b.get_by_role('button', name='將原本本機資料搬到此帳號', exact=True).click()
     saved(page_b)

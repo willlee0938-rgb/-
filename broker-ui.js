@@ -22,7 +22,8 @@ var BrokerUI = (function () {
   }
   function reconcile() {
     const before = structuredClone(db);
-    if (W.reconcile(db)) {
+    const copyChanged = W.reconcile(db), deliveryChanged = DriveOSPublishing.reconcile(db);
+    if (copyChanged || deliveryChanged) {
       try { DriveOSData.persist(db); }
       catch (_) { db = before; notice = '瀏覽器儲存空間不足，請匯出備份；暫時無法儲存狀態變更。'; }
     }
@@ -42,7 +43,7 @@ var BrokerUI = (function () {
         <div class="quick">${!history ? action('儲存修改', 'edit', post.id) : ''}
         ${post.status === '待審核' ? action('核准文案', 'approve', post.id, '') + action('依最新車源重建', 'rebuild', post.id) : ''}
         ${action('複製文案', 'copy', post.id)}
-        ${['已核准', '已排程'].includes(post.status) ? action('記錄實際發布', 'publish-form', post.id) : ''}
+        ${['已核准', '已排程'].includes(post.status) ? (post.deliveries?.length ? `<button type="button" class="btn secondary" data-publish-action="open-vehicle" data-id="${esc(post.vehicleId)}">前往發布工作台</button>` : action('記錄實際發布', 'publish-form', post.id)) : ''}
         ${!history ? action('取消', 'cancel', post.id, 'danger') : ''}</div>
       </article>`;
     }).join('')}</div>${posts.length > visible ? `<div class="toolbar">${action(`顯示更多（共 ${posts.length} 篇）`, 'more')}</div>` : ''}`;

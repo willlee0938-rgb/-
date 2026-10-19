@@ -44,7 +44,7 @@
     return post;
   }
   function resetApproval(post) {
-    for (const key of ['approvedAt', 'approvedContent', 'approvedPlatform', 'scheduledAt', 'destination']) delete post[key];
+    for (const key of ['approvedAt', 'approvedContent', 'approvedPlatform', 'approvedPhotoIndexes', 'scheduledAt', 'destination']) delete post[key];
     post.status = '待審核';
   }
   function reason(state, post) {
@@ -52,6 +52,7 @@
     if (!eligible(car)) return '車源已下架、已售出或資料不完整。';
     if (post.snapshot !== carSnapshot(car)) return '車價或車源資料已變更，請依最新車源重建文案。';
     if (post.approvedAt && (post.approvedContent !== post.content || post.approvedPlatform !== post.platform)) return '文案或平台已修改，請重新審核。';
+    if (post.approvedAt && post.approvedPhotoIndexes !== undefined && post.approvedPhotoIndexes !== JSON.stringify(post.publishPhotoIndexes || [])) return '照片選擇已變更，請重新審核。';
     return '';
   }
   function reconcile(state) {
@@ -86,6 +87,7 @@
     requireValue(platforms.includes(post.platform) && String(post.content).trim(), '請先確認平台與文案。');
     post.status = '已核准'; post.approvedAt = new Date(now).toISOString();
     post.approvedContent = post.content; post.approvedPlatform = post.platform;
+    if (post.publishPhotoIndexes) post.approvedPhotoIndexes = JSON.stringify(post.publishPhotoIndexes);
   }
   function schedule(state, { start, gapMinutes, dailyLimit, destinations }, now = new Date()) {
     const first = new Date(start).getTime();
@@ -141,6 +143,7 @@
     const post = postFor(state, postId);
     requireValue(['已核准', '已排程'].includes(post.status) && post.approvedAt, '請先核准文案。');
     requireValue(!reason(state, post), reason(state, post));
+    requireValue(!post.deliveries?.some(task => task.status !== 'cancelled'), '請到審核與發布工作台逐站記錄結果。');
     const car = state.cars.find(c => c.id === post.vehicleId);
     requireValue(!car.isDemo && !/示範/.test(car.notes || ''), '示範車源不能記錄為真實發布，請先加入實際授權庫存。');
     let url; try { url = new URL(postUrl); } catch (_) { throw new Error('請填入實際貼文的 HTTPS 網址。'); }
