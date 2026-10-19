@@ -11,6 +11,9 @@ with sync_playwright() as playwright:
         headless=True, args=['--no-sandbox'],
     )
     context = browser.new_context(viewport={'width': 1440, 'height': 1100})
+    # Exercise demo mode regardless of the public deployment connection config.
+    context.route('**/config.js', lambda route: route.fulfill(
+        content_type='application/javascript', body='window.DRIVEOS_CONFIG={};'))
     page = context.new_page()
     errors, dialogs = [], []
     page.on('pageerror', lambda error: errors.append(str(error)))

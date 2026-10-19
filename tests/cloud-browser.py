@@ -89,6 +89,9 @@ def service(route):
 
 def setup(browser):
     context = browser.new_context(viewport={'width': 1440, 'height': 1000})
+    # Never send test logins to a real project configured for deployment.
+    context.route('**/config.js', lambda route: route.fulfill(
+        content_type='application/javascript', body='window.DRIVEOS_CONFIG={};'))
     context.route(HOST + '/**', service)
     connection = json.dumps({'projectUrl': HOST, 'publishableKey': 'sb_publishable_testing_only'})
     context.add_init_script(f"if(!localStorage.getItem('driveos_cloud_connection'))localStorage.setItem('driveos_cloud_connection',{json.dumps(connection)})")
