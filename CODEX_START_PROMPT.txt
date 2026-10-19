@@ -1,0 +1,13 @@
+You are taking over an existing project named DriveOS. Read README.md, CODEX_HANDOFF.md, DATA_SCHEMA.md, INTEGRATION_SPEC.md, AI_COPY_RULES.md and ROADMAP.md before editing code.
+
+Current implementation is index.html, a working single-file V3 prototype using localStorage. Preserve the current product behavior while migrating toward a maintainable production architecture.
+
+Immediate objective:
+1. Inspect index.html and reproduce its features in a modern Next.js + TypeScript application.
+2. Use a professional bright automotive SaaS visual design with image-first inventory cards.
+3. Implement the proposed DB domain model, but seed only clearly labeled demo data.
+4. Build an InventoryAdapter abstraction so an authorized dealer source can be connected later without rewriting the UI.
+5. Build an AI Ad Studio interface with draft/review/approved states; do not fabricate vehicle facts.
+6. Do not implement unauthorized scraping or Facebook group automation. Publishing integrations must use official supported APIs and explicit account permission.
+
+Before coding, summarize the migration plan and identify any assumptions you make from the existing files.

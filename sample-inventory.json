@@ -1,0 +1,24 @@
+[
+  {
+    "externalId": "DEMO-001",
+    "brand": "Toyota",
+    "model": "Corolla Altis",
+    "year": 2020,
+    "mileageKm": 58000,
+    "price": 458000,
+    "status": "available",
+    "description": "示範資料，非真實庫存",
+    "images": []
+  },
+  {
+    "externalId": "DEMO-002",
+    "brand": "Honda",
+    "model": "Fit",
+    "year": 2019,
+    "mileageKm": 65000,
+    "price": 358000,
+    "status": "available",
+    "description": "示範資料，非真實庫存",
+    "images": []
+  }
+]
