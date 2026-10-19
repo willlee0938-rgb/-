@@ -7,7 +7,7 @@
   const money = n => 'NT$ ' + Number(n).toLocaleString('zh-TW');
   const id = prefix => prefix + '-' + globalThis.crypto.randomUUID();
   const taipeiDay = time => new Date(new Date(time).getTime() + 8 * 3600000).toISOString().slice(0, 10);
-  const carSnapshot = car => JSON.stringify([car.id, car.brand, car.model, car.year, car.mileage, car.price, car.status, car.notes, car.image]);
+  const carSnapshot = car => JSON.stringify([car.id, car.brand, car.model, car.year, car.mileage, car.price, car.status, car.notes, car.image, ...(car.images?.length ? [car.images] : [])]);
   function requireValue(condition, message) { if (!condition) throw new Error(message); }
   function eligible(car) {
     return car && car.status === '可售' && String(car.brand || '').trim() && String(car.model || '').trim()

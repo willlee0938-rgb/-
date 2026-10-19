@@ -33,7 +33,7 @@
 
 「匯入 JSON 備份」會取代整份工作台，是備份還原功能。`sample-inventory.json` 和 `sample-inventory.csv` 請到「車源匯入」預覽，不能用整站備份還原按鈕匯入。
 
-實作檔為 `inventory-import.js` 和 `inventory-ui.js`。目前一律為增量 upsert，未知狀態設為待確認。照片只接受 HTTPS 網址，每車最多 20 張；省略照片欄位保留原照片，明確空清單則清除來源照片。尚無自動下載或雲端圖庫上傳。
+實作檔為 `inventory-import.js` 和 `inventory-ui.js`。目前一律為增量 upsert，未知狀態設為待確認。匯入照片只接受 HTTPS 網址，每車最多 20 張；省略照片欄位保留原照片，明確空清單則清除來源照片。另可於「照片管理」上傳私人雲端圖庫；檔案匯入仍不自動下載來源圖片或清理被取代的雲端照片。
 
 ## Preferred order
 1. 官方 / 私有 API（最佳）

@@ -6,6 +6,8 @@ do not claim that a hosted Supabase project has been configured or verified.
 import base64
 import json
 import time
+import struct
+import zlib
 from urllib.parse import urlparse, parse_qs
 from playwright.sync_api import sync_playwright
 
@@ -18,6 +20,13 @@ USERS = {
 remote = {}
 failure = {'save': False}
 tokens = {}
+photos = {}
+
+
+def png_fixture():
+    def chunk(name, data):
+        return struct.pack('!I', len(data)) + name + data + struct.pack('!I', zlib.crc32(name + data))
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('!IIBBBBB', 2, 2, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(b'\0\xff\0\0\xff\0\0' * 2)) + chunk(b'IEND', b'')
 
 
 def token_for(email):
@@ -42,7 +51,7 @@ def service(route):
     request = route.request
     parsed = urlparse(request.url)
     query = parse_qs(parsed.query)
-    payload = request.post_data_json if request.post_data else {}
+    payload = request.post_data_json if 'application/json' in request.headers.get('content-type', '') and request.post_data else {}
 
     def reply(data=None, status=200):
         route.fulfill(status=status, content_type='application/json', body=json.dumps(data))
@@ -55,6 +64,29 @@ def service(route):
                       'expires_in': 3600, 'expires_at': int(time.time()) + 3600,
                       'token_type': 'bearer', 'user': user(email)})
     email = tokens.get(request.headers.get('authorization', '').removeprefix('Bearer '))
+    bucket = 'driveos-vehicle-photos'
+    signed_prefix = '/storage/v1/object/sign/' + bucket + '/'
+    if request.method == 'GET' and parsed.path.startswith(signed_prefix):
+        key = parsed.path.removeprefix(signed_prefix)
+        assert key in photos
+        return route.fulfill(status=200, content_type='image/png', body=png_fixture())
+    if parsed.path.startswith('/storage/v1/') and email:
+        owner = USERS[email]
+        if request.method == 'POST' and parsed.path == '/storage/v1/object/sign/' + bucket:
+            assert all(path.startswith(owner + '/') for path in payload['paths'])
+            return reply([{'path': path, 'signedURL': '/object/sign/' + bucket + '/' + path + '?token=test'} for path in payload['paths'] if path in photos])
+        if request.method == 'POST' and parsed.path.startswith('/storage/v1/object/' + bucket + '/'):
+            key = parsed.path.removeprefix('/storage/v1/object/' + bucket + '/')
+            assert key.startswith(owner + '/')
+            photos[key] = True
+            return reply({'Key': bucket + '/' + key, 'Id': key})
+        if request.method == 'DELETE' and parsed.path == '/storage/v1/object/' + bucket:
+            for key in payload['prefixes']:
+                assert key.startswith(owner + '/')
+                assert not any(image.get('storagePath') == key for car in remote[owner]['state']['cars'] for image in car.get('images', [])), 'DB must be saved before deleting storage objects'
+                photos.pop(key, None)
+            return reply([])
+        raise AssertionError(request.url)
     if parsed.path.endswith('/logout'):
         return reply({})
     if parsed.path.endswith('/recover'):
@@ -140,6 +172,41 @@ with sync_playwright() as p:
     page_a.wait_for_function("!document.body.classList.contains('cloud-locked')")
     assert page_a.evaluate('db.cars.length') == 1
     print('PASS login failure/success, empty cloud account, import preview/commit and cloud reload (API double)')
+
+    page_a.get_by_role('button', name='🚘　車源管理', exact=True).click()
+    page_a.get_by_role('button', name='照片管理', exact=True).click()
+    page_a.locator('#photo-upload [name=photos]').set_input_files([
+        {'name': 'front.png', 'mimeType': 'image/png', 'buffer': png_fixture()},
+        {'name': 'interior.png', 'mimeType': 'image/png', 'buffer': png_fixture()},
+    ])
+    page_a.get_by_role('button', name='上傳到雲端圖庫', exact=True).click()
+    page_a.wait_for_function("document.querySelector('#photo-feedback')?.textContent.includes('已上傳並儲存 2 張')")
+    images = remote[USERS['a@test.invalid']]['state']['cars'][0]['images']
+    assert len(images) == 2 and len(photos) == 2
+    assert all('url' not in image and 'storagePath' in image for image in images)
+    assert page_a.locator('.photo-item img').count() == 2
+    page_a.wait_for_function("[...document.querySelectorAll('.photo-item img')].every(img=>img.complete&&img.naturalWidth>0)")
+    second = images[1]['storagePath']
+    page_a.get_by_role('button', name='設為封面', exact=True).nth(1).click()
+    page_a.wait_for_function("document.querySelector('#photo-feedback')?.textContent==='封面已儲存。'")
+    assert remote[USERS['a@test.invalid']]['state']['cars'][0]['images'][0]['storagePath'] == second
+    page_a.get_by_role('button', name='移除', exact=True).first.click()
+    page_a.wait_for_function("document.querySelector('#photo-feedback')?.textContent==='照片已從車源移除。'")
+    assert second not in photos and len(photos) == 1
+    failure['save'] = True
+    page_a.locator('#photo-upload [name=photos]').set_input_files({'name': 'retry.png', 'mimeType': 'image/png', 'buffer': png_fixture()})
+    page_a.get_by_role('button', name='上傳到雲端圖庫', exact=True).click()
+    page_a.wait_for_function("document.querySelector('#photo-feedback')?.textContent.includes('照片關聯尚未完成雲端同步')")
+    assert len(photos) == 2, 'uploaded files referenced by pending DB drafts must not be deleted'
+    assert len(remote[USERS['a@test.invalid']]['state']['cars'][0]['images']) == 1
+    page_a.get_by_role('button', name='關閉', exact=True).click()
+    failure['save'] = False
+    page_a.get_by_role('button', name='帳號與同步', exact=True).click()
+    page_a.get_by_role('button', name='重試同步', exact=True).click()
+    saved(page_a)
+    assert len(remote[USERS['a@test.invalid']]['state']['cars'][0]['images']) == 2
+    page_a.get_by_role('button', name='關閉', exact=True).click()
+    print('PASS multi-photo upload, signed display, cover, safe deletion and sync-failure recovery (API double)')
 
     other_device, page_other, errors_other = setup(browser)
     login(page_other, 'a@test.invalid')

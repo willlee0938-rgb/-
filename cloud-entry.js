@@ -123,6 +123,12 @@ window.DriveOSData = {
   snapshot() { return configured ? engine?.snapshot() || emptyState() : structuredClone(local); },
   isCloud: () => configured,
   isReady: () => !configured || ready,
+  storageContext() {
+    if (!configured || !ready || !session || !engine) throw new Error('請先登入雲端帳號，再上傳照片。');
+    if (['conflict', 'auth', 'loading'].includes(engine.status)) throw new Error('請先處理雲端同步或版本衝突，再修改照片。');
+    return { storage: client.storage.from('driveos-vehicle-photos'), userId: session.user.id };
+  },
+  async flush() { return configured && engine ? await engine.flush() : !configured; },
   refreshStatus: status,
   async start() {
     status(); if (!configured) return;
