@@ -22,6 +22,38 @@ with sync_playwright() as playwright:
     assert response.status == 200
     assert page.locator('#heading').inner_text() == '遠端媒合中心'
     assert page.locator('#nav button').count() == 10
+    page.get_by_role('button', name='🚘　車源管理', exact=True).click()
+    original_cars = page.evaluate('structuredClone(db.cars)')
+    page.evaluate("db.cars.push({...db.cars[0],id:'FILTER-TEST',brand:' toyota ',model:'Yaris'});render()")
+    brands = page.get_by_label('車子品牌')
+    assert brands.locator('option').count() == 4  # All + three distinct brands
+    brands.select_option('toyota')
+    assert page.locator('.carcard').count() == 2
+    search = page.get_by_role('textbox', name='搜尋車源', exact=True)
+    search.fill('yaris')
+    assert page.locator('.carcard').count() == 1
+    assert '1 / 4' in page.locator('#inventory-result-count').inner_text()
+    assert search.evaluate('(el)=>el===document.activeElement')
+    search.fill('Fit')
+    assert page.locator('.carcard').count() == 0
+    assert '沒有符合條件' in page.locator('.cargrid').inner_text()
+    brands.select_option('honda')
+    assert page.locator('.carcard').count() == 1
+    page.get_by_role('button', name='清除篩選', exact=True).click()
+    assert page.locator('.carcard').count() == 4
+    assert page.get_by_label('車子品牌').input_value() == ''
+    assert page.get_by_role('textbox', name='搜尋車源', exact=True).input_value() == ''
+    page.get_by_label('車子品牌').select_option('toyota')
+    page.evaluate("db.cars=db.cars.filter(c=>c.brand.trim().toLowerCase()!=='toyota');render()")
+    assert page.get_by_label('車子品牌').input_value() == ''
+    assert page.locator('.carcard').count() == 2
+    page.set_viewport_size({'width': 390, 'height': 844})
+    assert page.evaluate('document.querySelector("main").scrollWidth<=document.querySelector("main").clientWidth')
+    page.screenshot(path='/tmp/driveos-inventory-filters-mobile.png', full_page=True)
+    page.set_viewport_size({'width': 1440, 'height': 1100})
+    page.evaluate('(cars)=>{db.cars=cars;render()}', original_cars)
+    page.get_by_role('button', name='↗　遠端媒合中心', exact=True).click()
+    print('PASS dynamic brands, case/space deduplication, combined keyword search, live count, reset and mobile layout')
     page.get_by_role('button', name='產生待審核草稿', exact=True).click()
     assert page.locator('[data-post-card]').count() == 4
     while page.get_by_role('button', name='核准文案', exact=True).count():
