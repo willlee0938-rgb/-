@@ -21,7 +21,7 @@ with sync_playwright() as playwright:
     response = page.goto(os.environ.get('DRIVEOS_TEST_URL', 'http://127.0.0.1:8000/'))
     assert response.status == 200
     assert page.locator('#heading').inner_text() == '遠端媒合中心'
-    assert page.locator('#nav button').count() == 9
+    assert page.locator('#nav button').count() == 10
     page.get_by_role('button', name='產生待審核草稿', exact=True).click()
     assert page.locator('[data-post-card]').count() == 4
     while page.get_by_role('button', name='核准文案', exact=True).count():
@@ -66,6 +66,26 @@ with sync_playwright() as playwright:
         assert page.locator('#app').inner_text().strip()
     page.get_by_role('button', name='▥　數據分析', exact=True).click()
     assert 'NT$ 10,000' in page.locator('#app').inner_text()
+    previous = page.evaluate('JSON.stringify(db)')
+    page.get_by_role('button', name='✦　廣告範例', exact=True).click()
+    assert page.locator('[data-example]').count() == 5
+    for index in range(5):
+        card = page.locator('[data-example]').nth(index)
+        assert '非真實庫存' in card.locator('textarea').input_value()
+        facebook = card.locator('textarea').input_value()
+        card.get_by_role('button', name='Threads 版', exact=True).click()
+        threads = card.locator('textarea').input_value()
+        assert threads != facebook and '非真實庫存' in threads
+    assert page.evaluate('JSON.stringify(db)') == previous
+    page.set_viewport_size({'width': 390, 'height': 844})
+    assert page.evaluate('document.querySelector("main").scrollWidth<=document.querySelector("main").clientWidth')
+    page.set_viewport_size({'width': 1440, 'height': 1100})
+    page.goto('http://127.0.0.1:8000/?view=examples')
+    assert page.locator('#heading').inner_text() == '廣告範例'
+    assert page.locator('[data-example]').count() == 5
+    assert page.evaluate('JSON.stringify(db)') == previous
+    page.screenshot(path='/tmp/driveos-ad-examples.png', full_page=True)
+    print('PASS five ad examples, both platforms, direct link, mobile layout, and no workspace data changes')
     page.get_by_role('button', name='↗　遠端媒合中心', exact=True).click()
     page.screenshot(path='/tmp/driveos-broker-desktop.png', full_page=True)
     page.set_viewport_size({'width': 390, 'height': 844})
@@ -73,6 +93,6 @@ with sync_playwright() as playwright:
     page.screenshot(path='/tmp/driveos-broker-mobile.png', full_page=True)
     assert not errors, errors
     assert not dialogs, dialogs
-    print('PASS all 9 pages, confirmed commission analytics, mobile layout and no runtime errors')
+    print('PASS all 10 pages, confirmed commission analytics, mobile layout and no runtime errors')
     context.close()
     browser.close()
