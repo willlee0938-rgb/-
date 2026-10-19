@@ -8,6 +8,7 @@ import json
 import time
 import struct
 import zlib
+import random
 from urllib.parse import urlparse, parse_qs
 from playwright.sync_api import sync_playwright
 
@@ -23,10 +24,12 @@ tokens = {}
 photos = {}
 
 
-def png_fixture():
+def png_fixture(width=2, height=2, noise=False):
     def chunk(name, data):
         return struct.pack('!I', len(data)) + name + data + struct.pack('!I', zlib.crc32(name + data))
-    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('!IIBBBBB', 2, 2, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(b'\0\xff\0\0\xff\0\0' * 2)) + chunk(b'IEND', b'')
+    rng = random.Random(42)
+    pixels = b''.join(b'\0' + (rng.randbytes(width * 3) if noise else b'\xff\0\0' * width) for _ in range(height))
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('!IIBBBBB', width, height, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(pixels)) + chunk(b'IEND', b'')
 
 
 def token_for(email):
@@ -175,14 +178,24 @@ with sync_playwright() as p:
 
     page_a.get_by_role('button', name='🚘　車源管理', exact=True).click()
     page_a.get_by_role('button', name='照片管理', exact=True).click()
+    original = png_fixture(1800, 1200, noise=True)
+    assert len(original) > 5 * 1024 * 1024
     page_a.locator('#photo-upload [name=photos]').set_input_files([
-        {'name': 'front.png', 'mimeType': 'image/png', 'buffer': png_fixture()},
-        {'name': 'interior.png', 'mimeType': 'image/png', 'buffer': png_fixture()},
+        {'name': 'front.png', 'mimeType': 'image/png', 'buffer': original},
+        {'name': 'interior.png', 'mimeType': 'image/png', 'buffer': original},
     ])
     page_a.get_by_role('button', name='上傳到雲端圖庫', exact=True).click()
     page_a.wait_for_function("document.querySelector('#photo-feedback')?.textContent.includes('已上傳並儲存 2 張')")
     images = remote[USERS['a@test.invalid']]['state']['cars'][0]['images']
     assert len(images) == 2 and len(photos) == 2
+    assert images[0]['compressed'] and images[0]['mimeType'] == 'image/jpeg'
+    assert images[0]['size'] <= 500 * 1024 and images[0]['originalSize'] == len(original)
+    assert max(images[0]['width'], images[0]['height']) <= 1600
+    page_a.locator('#photo-budget [name=budget]').fill('1')
+    page_a.get_by_role('button', name='儲存容量提醒', exact=True).click()
+    page_a.wait_for_function("document.querySelector('#photo-feedback')?.textContent==='照片容量提醒已儲存。'")
+    assert remote[USERS['a@test.invalid']]['state']['settings']['photoBudgetMb'] == 1
+    assert page_a.locator('.photo-usage-warning').count() == int(sum(i['size'] for i in images) >= .8 * 1024 * 1024)
     assert all('url' not in image and 'storagePath' in image for image in images)
     assert page_a.locator('.photo-item img').count() == 2
     page_a.wait_for_function("[...document.querySelectorAll('.photo-item img')].every(img=>img.complete&&img.naturalWidth>0)")
@@ -206,7 +219,7 @@ with sync_playwright() as p:
     saved(page_a)
     assert len(remote[USERS['a@test.invalid']]['state']['cars'][0]['images']) == 2
     page_a.get_by_role('button', name='關閉', exact=True).click()
-    print('PASS multi-photo upload, signed display, cover, safe deletion and sync-failure recovery (API double)')
+    print('PASS large-photo compression, capacity reminder, signed display, cover, safe deletion and recovery (API double)')
 
     other_device, page_other, errors_other = setup(browser)
     login(page_other, 'a@test.invalid')

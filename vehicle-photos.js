@@ -5,12 +5,12 @@
   'use strict';
   const bucket = 'driveos-vehicle-photos';
   const mime = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
-  function validateFiles(files, existingCount) {
+  function validateFiles(files, existingCount, input = false) {
     if (!files.length || files.length > 10) throw new Error('每次請選擇 1–10 張照片。');
     if (existingCount + files.length > 20) throw new Error('每台車最多 20 張照片，請先移除不需要的照片。');
     for (const file of files) {
       if (!mime[file.type]) throw new Error('目前支援 JPG、PNG、WebP；手機 HEIC 照片請先轉成 JPG。');
-      if (!file.size || file.size > 5 * 1024 * 1024) throw new Error('每張照片須介於 1 byte 至 5MB，請先縮小較大的照片。');
+      if (!file.size || file.size > (input ? 25 : 5) * 1024 * 1024) throw new Error(input ? '原始照片每張須介於 1 byte 至 25MB。' : '處理後每張照片須介於 1 byte 至 5MB。');
     }
   }
   function objectPath(ownerId, vehicleId, contentType) {
@@ -36,5 +36,15 @@
     if (!Number.isInteger(index) || !images[index]) throw new Error('找不到這張照片，請重新開啟圖庫。');
     const [removed] = images.splice(index, 1); return { car: setGallery(car, images), removed };
   }
-  return { bucket, validateFiles, objectPath, owned, gallery, setGallery, setCover, remove };
+  function usage(cars, ownerId) {
+    const files = new Map();
+    for (const car of cars) for (const image of gallery(car)) {
+      if (!image.storagePath || (ownerId && !owned(image.storagePath, ownerId))) continue;
+      const size = Number.isFinite(image.size) && image.size > 0 ? image.size : null;
+      const previous = files.get(image.storagePath);
+      files.set(image.storagePath, size === null ? previous ?? null : Math.max(size, previous || 0));
+    }
+    return { count: files.size, bytes: [...files.values()].reduce((sum, size) => sum + (size || 0), 0), unknown: [...files.values()].filter(size => size === null).length };
+  }
+  return { bucket, validateFiles, objectPath, owned, gallery, setGallery, setCover, remove, usage };
 });

@@ -10,6 +10,13 @@ test('photo uploads enforce supported images, size, batch and per-vehicle limits
   }
   assert.throws(() => P.validateFiles([{ type: 'image/png', size: 5 }], 20));
   assert.throws(() => P.validateFiles([], 0));
+  P.validateFiles([{ type: 'image/jpeg', size: 20 * 1024 * 1024 }], 0, true);
+  assert.throws(() => P.validateFiles([{ type: 'image/jpeg', size: 26 * 1024 * 1024 }], 0, true));
+});
+test('usage counts unique owned linked objects; external, other-account and missing byte sizes are explicit', () => {
+  const cars = [{ images: [{ storagePath: owner + '/a.jpg', size: 100 }, { url: 'https://example.com/image.jpg' }, { storagePath: owner + '/unknown.jpg' }] },
+    { images: [{ storagePath: owner + '/a.jpg', size: 100 }, { storagePath: '22222222-2222-4222-8222-222222222222/b.jpg', size: 10000 }] }];
+  assert.deepEqual(P.usage(cars, owner), { count: 2, bytes: 100, unknown: 1 });
 });
 test('object keys use the authenticated owner and unique file names, never user-supplied filenames', () => {
   const first = P.objectPath(owner, 'CAR/../1', 'image/jpeg');
