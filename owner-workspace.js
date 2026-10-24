@@ -6,11 +6,14 @@ const number=x=>Number(x||0).toLocaleString('zh-TW');
 const isDemo=c=>!!(c.demo||c.isDemo||String(c.notes||'').includes('示範')||String(c.id||'').startsWith('example-'));
 const available=c=>c.status==='可售'||c.status==='available';
 const validCars=db=>(db.cars||[]).filter(c=>!isDemo(c));
+const adSignature=c=>[c.brand,c.model,c.trim||'',c.year,c.mileageKm||c.mileage,c.price,c.status,c.imageUrl||c.image||'',(c.images||[]).map(x=>typeof x==='string'?x:x.storagePath||x.url).join(';')].join('|');
+const latestFeed=db=>(db.imports||[]).find(i=>i.fileName==='remote-authorized-feed.json');
+const feedLabel=db=>{const i=latestFeed(db);if(!i)return '尚未串接';const d=new Date(i.at);return Number.isFinite(d.getTime())?'最近同步 '+d.toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false}):'曾同步，時間待確認';};
 const statusP=(value,extra='')=>'<span class="ow-pill '+extra+'">'+safe(value)+'</span>';
 const nav=(p,label,cl='secondary')=>'<button class="btn '+cl+'" type="button" onclick="navigate(\''+p+'\')">'+label+'</button>';
 function summary(db){
  const all=validCars(db),active=all.filter(available),p=db.posts||[];
- const needs=active.filter(c=>['facebook:A','facebook:B','threads:A','threads:B'].some(v=>!p.some(a=>a.adFactory===true&&a.vehicleId===c.id&&a.factoryVariant===v))).length;
+ const needs=active.filter(c=>['facebook:A','facebook:B','threads:A','threads:B'].some(v=>!p.some(a=>a.adFactory===true&&a.vehicleId===c.id&&a.factoryVariant===v&&a.factorySignature===adSignature(c)))).length;
  const review=p.filter(a=>a.adFactory===true&&a.status==='待審核'&&active.some(c=>c.id===a.vehicleId)).length;
  const pending=(db.leads||[]).filter(l=>!['已成交','未成交'].includes(l.stage)).length;
  return {all,active,needs,review,pending};
@@ -18,9 +21,9 @@ function summary(db){
 function dashboard(db){
  const s=summary(db),samples=(db.cars||[]).filter(isDemo).length;
  return '<div class="ow-hero"><small>CARMAN · DAILY COMMAND CENTER</small><h2>今天只需要看重點、審廣告、做決定。</h2><p>車源更新後，廣告跟著車輛管理；每台車只佔一列。正式串接楊哥庫存之前，這裡只顯示目前工作台資料，不會捏造每日同步成功。</p><div class="ow-hero-actions">'+nav('adFactory','查看待審核廣告','')+nav('cars','查看車源')+'</div></div>'
- +'<div class="ow-note">車商每日同步：<b>尚未串接</b>　·　GPT 自動產文：<b>尚未啟用</b>　·　Threads / FB 自動發布：<b>尚未授權</b>'+(samples?'　·　目前另有 '+samples+' 台示範資料，不計入正式庫存':'')+'</div>'
+ +'<div class="ow-note">車商庫存：<b>'+safe(feedLabel(db))+'</b>　·　GPT 草稿：<b>'+((db.posts||[]).some(p=>p.generatedBy==='openai_api')?'已有 AI 草稿':'尚未啟用')+'</b>　·　社群自動發布：<b>尚未授權</b>'+(samples?'　·　目前另有 '+samples+' 台示範資料，不計入正式庫存':'')+'</div>'
  +'<div class="ow-kpi"><div><small>已建檔可售車源</small><strong>'+number(s.active.length)+'</strong><span>非示範資料，非即時車商庫存</span></div><div><small>尚未補齊四篇草稿</small><strong>'+number(s.needs)+'</strong><span>FB A/B + Threads A/B</span></div><div><small>待審核廣告</small><strong>'+number(s.review)+'</strong><span>先確認價格、車況與實車照</span></div><div><small>尚在跟進的線索</small><strong>'+number(s.pending)+'</strong><span>買車與賣車需求</span></div></div>'
- +'<div class="ow-two"><section class="ow-section"><h2>今日工作重點</h2><div class="ow-statusline"><span>庫存狀態</span>'+statusP('等待楊哥授權','warn')+'</div><div class="ow-statusline"><span>廣告草稿</span>'+statusP(s.needs?'有車尚未補齊':'依現有資料已檢查')+'</div><div class="ow-statusline"><span>雲端儲存</span>'+statusP(window.DriveOSData?.isCloud?.()?'使用雲端帳號':'本機模式','')+'</div><div class="ow-actions">'+nav('inventoryImport','匯入車源')+nav('adFactory','進入廣告工廠','')+'</div></section><section class="ow-section"><h2>下一步</h2><p>楊哥開放資料庫後，先測試 5 台真車的照片、價格和上下架狀態，再擴到全部庫存。在此之前，先用廣告工廠練習審稿。</p><div class="ow-actions">'+nav('ownerLeads','買賣線索')+nav('settings','查看系統串接')+'</div></section></div>';
+ +'<div class="ow-two"><section class="ow-section"><h2>今日工作重點</h2><div class="ow-statusline"><span>庫存狀態</span>'+statusP(latestFeed(db)?'有授權同步紀錄':'等待楊哥授權',latestFeed(db)?'':'warn')+'</div><div class="ow-statusline"><span>廣告草稿</span>'+statusP(s.needs?'有車尚未補齊':'依現有資料已檢查')+'</div><div class="ow-statusline"><span>雲端儲存</span>'+statusP(window.DriveOSData?.isCloud?.()?'使用雲端帳號':'本機模式','')+'</div><div class="ow-actions">'+nav('inventoryImport','匯入車源')+nav('adFactory','進入廣告工廠','')+'</div></section><section class="ow-section"><h2>下一步</h2><p>楊哥開放資料庫後，先測試 5 台真車的照片、價格和上下架狀態，再擴到全部庫存。在此之前，先用廣告工廠練習審稿。</p><div class="ow-actions">'+nav('ownerLeads','買賣線索')+nav('settings','查看系統串接')+'</div></section></div>';
 }
 function leads(db){
  const ls=(db.leads||[]),buyers=ls.filter(l=>l.intent!=='想賣車'),sellers=ls.filter(l=>l.intent==='想賣車');
@@ -34,7 +37,7 @@ function settings(db,legacy){
  const cloud=window.DriveOSData?.isCloud?.();
  const tiles=[['庫存同步','等待楊哥提供授權資料','inventoryImport','車源匯入'],['廣告工廠','待 GPT API 正式串接','adFactory','管理文案'],['發布任務','等待 Threads / Facebook 平台授權','publishing','審核與發布'],['轉介佣金','保留歷史，不佔側邊欄','deals','佣金追蹤']];
  return '<div class="ow-hero"><small>CARMAN · SYSTEM</small><h2>系統設定與進階工具</h2><p>日常操作只留五個選單，低頻使用的匯入、發文任務、佣金和備份都集中在這裡。原本功能沒有刪除。</p></div>'
- +'<div class="ow-note">資料儲存：<b>'+(cloud?'雲端帳號模式（請確認頁首同步狀態）':'此瀏覽器本機模式')+'</b>　·　車商資料庫：<b>尚未串接</b>　·　AI 批量生成：<b>尚未啟用</b></div>'
+ +'<div class="ow-note">資料儲存：<b>'+(cloud?'雲端帳號模式（請確認頁首同步狀態）':'此瀏覽器本機模式')+'</b>　·　車商資料庫：<b>'+safe(feedLabel(db))+'</b>　·　AI 草稿：<b>'+((db.posts||[]).some(p=>p.generatedBy==='openai_api')?'已建立':'尚未啟用')+'</b></div>'
  +'<section class="ow-section"><h2>需要時才打開的工具</h2>'+tiles.map(t=>'<div class="ow-quick"><div><strong>'+t[0]+'</strong><p>'+t[1]+'</p></div>'+nav(t[2],t[3])+'</div>').join('')+'</section>'
  +'<details class="ow-advanced"><summary>進階資料管理、備份與連線狀態（展開）</summary><div class="ow-inner">'+legacy()+'</div></details>'
  +'<div class="ow-actions">'+nav('reports','查看歷史報表')+nav('posts','原有社群廣告清單')+nav('examples','五組範例')+'</div>';
