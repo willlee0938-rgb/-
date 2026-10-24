@@ -12,8 +12,26 @@ var AdFactoryUI=(function(){
   function stock(c){return c.status==='可售'||c.status==='available';}
   function signature(c){return [c.brand,c.model,c.trim||'',c.year,c.mileageKm||c.mileage,c.price,c.status,c.imageUrl||c.image||'',(c.images||[]).map(x=>typeof x==='string'?x:x.storagePath||x.url).join(';')].join('|');}
   function ad(st,c,k){return (st.posts||[]).find(p=>p.adFactory===true&&p.vehicleId===c.id&&p.factoryVariant===k);}
-  function cover(c){if(sample(c))return '';const u=String(c.imageUrl||c.image||(Array.isArray(c.images)&&c.images[0]&&(typeof c.images[0]==='string'?c.images[0]:c.images[0].url))||'');return /^(https:\/\/|data:image\/(?:svg\+xml|jpeg|png|webp);)/i.test(u)?u:'';}
-  function image(c){const u=cover(c);return u?'<img src="'+html(u)+'" alt="'+html(c.brand+' '+c.model)+' 車源照片">':'<span>🚘 '+(sample(c)?'示範':'待補照片')+'</span>';}
+  function sourcePhoto(c){
+    if(sample(c))return {url:'',storagePath:''};
+    const first=(window.VehiclePhotos?.gallery?.(c)||[])[0]||{};
+    const fromPhotos=String(first.url||c.imageUrl||c.image||'');
+    const url=/^https:\/\//i.test(fromPhotos)?fromPhotos:'';
+    let storagePath='';
+    try{const ctx=window.DriveOSData?.storageContext?.();if(first.storagePath&&ctx&&VehiclePhotos.owned(first.storagePath,ctx.userId))storagePath=first.storagePath;}
+    catch(_){}
+    return {url,storagePath};
+  }
+  function hasPhoto(c){const photo=sourcePhoto(c);return Boolean(photo.url||photo.storagePath);}
+  function image(c){
+    const photo=sourcePhoto(c),alt=html(c.brand+' '+c.model+' 實車照片');
+    if(photo.storagePath){
+      const url=window.DriveOSPhotos?.cover?.(c)||photo.url||'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120"><rect width="200" height="120" fill="#eaf1f7"/><text x="100" y="65" font-size="13" text-anchor="middle" fill="#667f96">雲端照片載入中</text></svg>');
+      return '<img loading="lazy" data-storage-path="'+html(photo.storagePath)+'" src="'+html(url)+'" alt="'+alt+'">';
+    }
+    if(photo.url)return '<img loading="lazy" src="'+html(photo.url)+'" alt="'+alt+'" onerror="this.hidden=true;this.parentElement.classList.add(\'cf-photo-error\')">';
+    return '<span>'+(sample(c)?'示範車輛':'待補實車照片')+'</span>';
+  }
   function safeTitle(c){return [c.year,c.brand,c.model].filter(Boolean).join(' ');}
   function template(c,k){const title=safeTitle(c),n=Number(c.mileageKm||c.mileage||0).toLocaleString('zh-TW'),p=money(c.price);
     const disclaimer=sample(c)?'【示範文案，非真實車源，禁止對外刊登】\n\n':'';
@@ -43,7 +61,7 @@ var AdFactoryUI=(function(){
     const c=cars().find(c=>c.id===selectedId);if(!c){el.remove();return;}
     const st=state(),p=ad(st,c,selectedVariant),dem=sample(c),text=p?.content||template(c,selectedVariant);
     const status=p?label(p,c):'尚未建立';
-    el.innerHTML='<div class="cf-shade" data-cf="close"></div><section class="cf-panel" role="dialog" aria-modal="true" aria-label="查看車輛廣告"><div class="cf-panel-head"><div class="cf-heading"><div><span class="cf-chip">'+(dem?'DEMO 示範':'正式車源')+'</span><h2>'+html(safeTitle(c))+'</h2><p>'+money(c.price)+' · '+html(c.status||'待確認')+' · '+html(status)+'</p></div><button class="btn secondary" data-cf="close" aria-label="關閉視窗">關閉 ×</button></div><div class="cf-variants">'+variants.map(v=>'<button data-cf="tab" data-key="'+v[0]+'" class="'+(v[0]===selectedVariant?'active':'')+'">'+v[1]+'</button>').join('')+'</div></div><div class="cf-panel-body"><div class="cf-car-head"><div class="cf-photo">'+image(c)+'</div><div><b>'+html(c.brand+' '+c.model)+'</b><p>年份 '+html(c.year)+' · 里程 '+Number(c.mileageKm||c.mileage||0).toLocaleString('zh-TW')+' km</p><p>文案版本：'+html(variants.find(v=>v[0]===selectedVariant)?.[1]||'')+'</p></div></div><label for="cf-content">廣告內文</label><textarea id="cf-content" '+(dem?'readonly':'')+'>'+html(text)+'</textarea>'+(dem?'<div class="cf-notice">此篇是虛構練習素材，不能刊登。</div>':'<p class="cf-info">目前為預先產生的安全套版。核准前需確認車價、可售狀態、實車照片和合作車商資訊。這裡的「核准」只會更新工作台狀態，不會自動發文。</p>')+'</div><div class="cf-panel-foot"><button class="btn secondary" data-cf="copy">複製文案</button><button class="btn" data-cf="save" '+(dem?'disabled':'')+'>儲存草稿</button><button class="btn" data-cf="approve" '+(dem||!p||!stock(c)||!cover(c)||signature(c)!==p.factorySignature?'disabled':'')+'>核准此稿</button></div></section>';
+    el.innerHTML='<div class="cf-shade" data-cf="close"></div><section class="cf-panel" role="dialog" aria-modal="true" aria-label="查看車輛廣告"><div class="cf-panel-head"><div class="cf-heading"><div><span class="cf-chip">'+(dem?'DEMO 示範':'正式車源')+'</span><h2>'+html(safeTitle(c))+'</h2><p>'+money(c.price)+' · '+html(c.status||'待確認')+' · '+html(status)+'</p></div><button class="btn secondary" data-cf="close" aria-label="關閉視窗">關閉 ×</button></div><div class="cf-variants">'+variants.map(v=>'<button data-cf="tab" data-key="'+v[0]+'" class="'+(v[0]===selectedVariant?'active':'')+'">'+v[1]+'</button>').join('')+'</div></div><div class="cf-panel-body"><div class="cf-car-head"><div class="cf-photo">'+image(c)+'</div><div><b>'+html(c.brand+' '+c.model)+'</b><p>年份 '+html(c.year)+' · 里程 '+Number(c.mileageKm||c.mileage||0).toLocaleString('zh-TW')+' km</p><p>文案版本：'+html(variants.find(v=>v[0]===selectedVariant)?.[1]||'')+'</p></div></div><label for="cf-content">廣告內文</label><textarea id="cf-content" '+(dem?'readonly':'')+'>'+html(text)+'</textarea>'+(dem?'<div class="cf-notice">此篇是虛構練習素材，不能刊登。</div>':'<p class="cf-info">目前為預先產生的安全套版。核准前需確認車價、可售狀態、實車照片和合作車商資訊。這裡的「核准」只會更新工作台狀態，不會自動發文。</p>')+'</div><div class="cf-panel-foot"><button class="btn secondary" data-cf="copy">複製文案</button><button class="btn" data-cf="save" '+(dem?'disabled':'')+'>儲存草稿</button><button class="btn" data-cf="approve" '+(dem||!p||!stock(c)||!hasPhoto(c)||signature(c)!==p.factorySignature?'disabled':'')+'>核准此稿</button></div></section>';void window.DriveOSPhotos?.refresh?.();
   }
   function open(id){selectedId=id;selectedVariant='facebook:A';let overlay=document.getElementById('cf-overlay');if(!overlay){overlay=document.createElement('div');overlay.id='cf-overlay';overlay.className='cf-modal';document.body.appendChild(overlay);}drawer();}
   function persistChange(change){
@@ -53,7 +71,7 @@ var AdFactoryUI=(function(){
   }
   function saveCurrent(approve){const c=cars().find(x=>x.id===selectedId);if(!c||sample(c))return;
     const content=document.getElementById('cf-content')?.value?.trim();if(!content){alert('文案不能空白');return;}
-    if(approve&&(!stock(c)||!cover(c))){alert('正式核准前，車源必須仍可售且有授權的實車照片');return;}
+    if(approve&&(!stock(c)||!hasPhoto(c))){alert('正式核准前，車源必須仍可售且有授權的實車照片');return;}
     persistChange(st=>{st.posts=st.posts||[];let post=ad(st,c,selectedVariant);if(approve&&(!post||post.factorySignature!==signature(c)))throw new Error('車源資料有異動，請重新審稿');
       if(!post){post={id:'AF-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),adFactory:true,vehicleId:c.id,factoryVariant:selectedVariant,platform:selectedVariant.startsWith('facebook')?'Facebook社團':'Threads',title:safeTitle(c)+'｜'+selectedVariant,views:0,inquiries:0,date:new Date().toLocaleDateString('en-CA'),status:'待審核',factorySignature:signature(c)};st.posts.push(post);}
       post.content=content;post.status=approve?'已核准':'待審核';post.factorySignature=signature(c);
@@ -67,7 +85,7 @@ var AdFactoryUI=(function(){
   document.addEventListener('click',e=>{const t=e.target.closest('[data-cf]');if(!t)return;
     const action=t.dataset.cf;if(action==='open')open(t.dataset.id);
     if(action==='close'){selectedId='';document.getElementById('cf-overlay')?.remove();}
-    if(action==='tab'){selectedVariant=t.dataset.key;drawer();}
+    if(action==='tab'){const cur=document.getElementById('cf-content');const car=cars().find(c=>c.id===selectedId);const original=car?(ad(state(),car,selectedVariant)?.content||template(car,selectedVariant)):'';if(cur&&!sample(car)&&cur.value!==original&&!confirm('這份文案尚未儲存，切換版本會遺失修改。確定切換？'))return;selectedVariant=t.dataset.key;drawer();}
     if(action==='copy'){const x=document.getElementById('cf-content');if(!x)return;const clipboard=navigator.clipboard?.writeText?.(x.value);if(clipboard)clipboard.catch(()=>{x.select();document.execCommand('copy');});else{x.select();document.execCommand('copy');}message='已複製';}
     if(action==='sample'){showSamples=!showSamples;query='';only='all';if(typeof navigate==='function')navigate('adFactory');}
     if(action==='bulk')bulk();
