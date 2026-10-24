@@ -49,3 +49,5 @@
 .cf-info{font-size:12px;color:#677f9e;line-height:1.8;margin:12px 0}
 .cf-notice{font-size:12px;color:#986938;background:#fff7eb;border:1px solid #f6e3c4;padding:10px 13px;border-radius:10px;margin:10px 0}
 @media(max-width:750px){.cf-intro{padding:22px}.cf-intro h2{font-size:20px}.cf-row{gap:10px;padding:11px}.cf-photo{width:70px;height:60px}.cf-row>.btn{padding:8px 10px;font-size:11px}.cf-information b{font-size:13px}.cf-information .cf-detail{font-size:11px}.cf-panel{width:100vw}.cf-panel-head{padding:17px}.cf-panel-body{padding:18px}.cf-panel-foot{padding:14px}}
+
+.cf-photo-error{position:relative;background:#edf3f9}.cf-photo-error::after{content:'照片暫時無法讀取';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#758eaa;padding:8px;text-align:center}
