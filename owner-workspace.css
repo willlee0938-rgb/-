@@ -1,0 +1,43 @@
+/* DriveOS V5.3 owner's simplified workspaces -- keep classic navy/blue theme */
+.ow-hero{background:linear-gradient(110deg,#12326b,#147e9d);padding:27px 29px;color:#fff;border-radius:19px;margin-bottom:19px}
+.ow-hero small{font-size:11px;font-weight:700;letter-spacing:.12em;color:#bfe2ff}
+.ow-hero h2{font-size:25px;font-weight:800;color:#fff;letter-spacing:-.4px;margin:9px 0}
+.ow-hero p{font-size:13px;line-height:1.8;color:#d5e8fa;max-width:760px}
+.ow-hero .btn{background:#fff;color:#1c5eae;box-shadow:none}
+.ow-hero-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.ow-hero-actions .btn.secondary{background:#d9edff;color:#205c9b}
+.ow-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.ow-kpi>div{border-radius:16px;padding:22px 20px;border:1px solid #e4ebf5;background:white;box-shadow:0 5px 22px #223e5c09}
+.ow-kpi small{font-size:12px;color:#71869e;font-weight:650}
+.ow-kpi strong{display:block;font-size:30px;color:#183a6d;margin:9px 0 4px;font-weight:850}
+.ow-kpi span{font-size:11px;color:#8d9eb0}
+.ow-section{border:1px solid #e4ebf5;background:white;border-radius:17px;padding:22px;margin-top:18px}
+.ow-section h2{font-size:17px;color:#1a375d;margin:0 0 11px}
+.ow-section p{font-size:13px;color:#7388a0;line-height:1.8}
+.ow-two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ow-statusline{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf1f7;padding:11px 0;gap:12px;font-size:13px;color:#54708b}
+.ow-statusline:last-child{border-bottom:0}
+.ow-statusline strong{color:#24476c;font-size:12px}
+.ow-pill{padding:5px 9px;border-radius:9px;color:#2467b7;background:#eaf3ff;font-weight:750;font-size:11px}
+.ow-pill.warn{background:#fff1db;color:#9a693a}
+.ow-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}
+.ow-actions .btn{box-shadow:none}
+.ow-table{width:100%;min-width:650px;border-collapse:collapse}
+.ow-table th{text-align:left;font-size:11px;color:#7890a9;background:#f6f9fd}
+.ow-table td{font-size:12px;color:#314c6b;vertical-align:middle}
+.ow-table td b{font-size:13px;color:#193c60}
+.ow-table .btn{padding:8px 11px;font-size:11px}
+.ow-note{padding:14px 17px;border-radius:11px;background:#edf5ff;border:1px solid #d6e6f8;font-size:12px;line-height:1.9;color:#547ba0;margin-bottom:18px}
+.ow-advanced{border:1px solid #e2ebf7;border-radius:15px;background:white;margin-top:17px}
+.ow-advanced summary{font-weight:750;color:#466f9a;padding:16px 20px;cursor:pointer;font-size:13px}
+.ow-advanced .ow-inner{padding:0 18px 18px}
+.ow-advanced .two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ow-leads-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.ow-leads-top .btn{box-shadow:none}
+.ow-quick{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #eef3f9;gap:15px}
+.ow-quick:last-child{border-bottom:0}
+.ow-quick strong{color:#23476d;font-size:13px}
+.ow-quick p{font-size:12px;color:#8b9cb0;margin-top:4px}
+.ow-quick .btn{white-space:nowrap}
+@media(max-width:1100px){.ow-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.ow-two{grid-template-columns:1fr}}
+@media(max-width:650px){.ow-hero{padding:19px 18px}.ow-hero h2{font-size:20px}.ow-kpi>div{padding:15px}.ow-kpi strong{font-size:25px}.ow-section{padding:15px}.ow-advanced .two{grid-template-columns:1fr}}
