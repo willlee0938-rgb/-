@@ -1,0 +1,35 @@
+name: Carman 每三小時更新車源與廣告草稿
+on:
+  schedule:
+    - cron: '7 */3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: carman-inventory-sync
+  cancel-in-progress: false
+jobs:
+  inventory-and-drafts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: 核心流程測試
+        run: node --test automation/core.test.mjs
+      - name: 授權庫存同步與 GPT 廣告草稿（預設不啟用）
+        env:
+          AUTOMATION_ENABLED: ${{ vars.CARMAN_AUTOMATION_ENABLED }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          DRIVEOS_OWNER_ID: ${{ secrets.DRIVEOS_OWNER_ID }}
+          DEALER_FEED_URL: ${{ secrets.DEALER_FEED_URL }}
+          DEALER_FEED_TOKEN: ${{ secrets.DEALER_FEED_TOKEN }}
+          DEALER_SOURCE_NAME: ${{ vars.DEALER_SOURCE_NAME }}
+          DEALER_FULL_SNAPSHOT: ${{ vars.DEALER_FULL_SNAPSHOT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          MAX_CARS_PER_RUN: ${{ vars.MAX_CARS_PER_RUN }}
+        run: node automation/runner.mjs
