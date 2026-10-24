@@ -24,7 +24,7 @@ export function applyFeed(existingState,feedRows,{source='凱爾車業',fullSnap
 }
 export function missingDraftVehicles(state,max=25){
  const map=new Map((state.posts||[]).filter(p=>p.adFactory).map(p=>[p.vehicleId+'|'+p.factoryVariant,p]));
- return (state.cars||[]).filter(c=>eligible(c)&&VARIANTS.some(k=>{const p=map.get(c.id+'|'+k);return !p||(p.factorySignature!==vehicleSignature(c)&&!p.manualEdited&&!['已發布','published'].includes(p.status));})).slice(0,max);
+ return (state.cars||[]).filter(c=>eligible(c)&&VARIANTS.some(k=>{const p=map.get(c.id+'|'+k);return !p||(!p.manualEdited&&!['已發布','published','已核准'].includes(p.status)&&(p.factorySignature!==vehicleSignature(c)||p.generatedBy!=='openai_api'));})).slice(0,max);
 }
 export function saveAIDrafts(state,car,payload){
  if(!eligible(car))throw Error('示範或停售車不得準備正式廣告');
