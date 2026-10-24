@@ -41,3 +41,17 @@
 .ow-quick .btn{white-space:nowrap}
 @media(max-width:1100px){.ow-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.ow-two{grid-template-columns:1fr}}
 @media(max-width:650px){.ow-hero{padding:19px 18px}.ow-hero h2{font-size:20px}.ow-kpi>div{padding:15px}.ow-kpi strong{font-size:25px}.ow-section{padding:15px}.ow-advanced .two{grid-template-columns:1fr}}
+
+/* Vehicle management uses compact rows instead of a wall of large cards. */
+.cargrid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:14px}
+.cargrid>.carcard{display:grid;grid-template-columns:112px minmax(0,1fr);min-height:110px;border-radius:15px;box-shadow:0 3px 14px #23426909}
+.cargrid .carphoto{height:100%;min-height:105px;border-right:1px solid #e5edf5}
+.cargrid .carphoto img{object-fit:cover}
+.cargrid .carstatus{top:6px;right:6px;font-size:10px;padding:4px 6px}
+.cargrid .carbody{padding:14px;display:flex;align-items:center;flex-wrap:wrap;gap:9px 15px}
+.cargrid .carname{font-size:15px;min-width:155px;flex:1 1 190px;margin:0}
+.cargrid .carbody>.muted{font-size:11px;flex:0 1 155px}
+.cargrid .carprice{font-size:16px;margin:0;flex:0 0 auto}
+.cargrid .caractions{margin:0 0 0 auto;gap:6px}
+.cargrid .caractions .btn{font-size:11px;padding:8px 10px;box-shadow:none}
+@media(max-width:710px){.cargrid>.carcard{grid-template-columns:82px minmax(0,1fr)}.cargrid .carbody{padding:11px;gap:6px}.cargrid .carname{font-size:13px;flex-basis:100%}.cargrid .carbody>.muted{flex-basis:auto;font-size:10px}.cargrid .carprice{font-size:14px}.cargrid .caractions{width:100%;margin-left:0}.cargrid .caractions .btn{font-size:10px;padding:6px 7px}}
