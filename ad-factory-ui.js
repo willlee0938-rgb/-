@@ -5,15 +5,15 @@ var AdFactoryUI=(function(){
   let query='',only='all',showSamples=false,selectedId='',selectedVariant='facebook:A',message='';
   function html(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
   function money(n){return 'NT$ '+Number(n||0).toLocaleString('zh-TW');}
-  function state(){return window.DriveOSApp?.snapshot()||{cars:[],posts:[]};}
+  function state(){return window.CarmanDemoFleet?.active?CarmanDemoFleet.state():(window.DriveOSApp?.snapshot()||{cars:[],posts:[]});}
   function samples(){return (window.DriveOSExamples?.vehicles||[]).map(c=>({...c,mileage:c.mileageKm||c.mileage,status:'可售',demo:true}));}
   function sample(c){return Boolean(showSamples||c?.demo||c?.isDemo||String(c?.notes||'').includes('示範')||String(c?.id||'').startsWith('example-'));}
-  function cars(){const list=state().cars||[];return showSamples?samples():list;}
+  function cars(){const list=state().cars||[];return window.CarmanDemoFleet?.active?list:(showSamples?samples():list);}
   function stock(c){return c.status==='可售'||c.status==='available';}
   function signature(c){return [c.brand,c.model,c.trim||'',c.year,c.mileageKm||c.mileage,c.price,c.status,c.imageUrl||c.image||'',(c.images||[]).map(x=>typeof x==='string'?x:x.storagePath||x.url).join(';')].join('|');}
   function ad(st,c,k){return (st.posts||[]).find(p=>p.adFactory===true&&p.vehicleId===c.id&&p.factoryVariant===k);}
   function sourcePhoto(c){
-    if(sample(c))return {url:'',storagePath:''};
+    if(sample(c)){if(window.CarmanDemoFleet?.active&&/^demo-photos\.svg#car[1-5]$/.test(c.image||''))return {url:c.image,storagePath:''};return {url:'',storagePath:''};}
     const first=(window.VehiclePhotos?.gallery?.(c)||[])[0]||{};
     const fromPhotos=String(first.url||c.imageUrl||c.image||'');
     const url=/^https:\/\//i.test(fromPhotos)?fromPhotos:'';
@@ -49,11 +49,11 @@ var AdFactoryUI=(function(){
     });
     const covered=filtered.filter(c=>variants.every(v=>ad(st,c,v[0]))).length;
     return '<div class="cf-intro"><span class="cf-chip">CARMAN · DRIVEOS V5.2</span><h2>廣告工廠｜每台車只佔一列。</h2><p>平常只看車輛、庫存和四篇廣告是否齊全；需要審查時，才從右側打開 Facebook A／B 和 Threads A／B。沿用原本的雲端工作台與深藍色介面。</p></div>'
-    +'<div class="cf-alert">'+(showSamples?'目前使用 5 台虛構練習車源；下方所有文案都不是實際庫存，不能對外發布。':'目前是原有 DriveOS 的車源資料。未串接車商每日庫存與 GPT API；按「建立草稿」產生的是安全套版，不是 AI 產文。')+'</div>'
-    +'<div class="cf-toolbar"><input id="cf-query" aria-label="搜尋車款" placeholder="搜尋車型、品牌、年份或車源編號…" value="'+html(query)+'"><select id="cf-filter" aria-label="廣告完成度"><option value="all">所有車輛</option><option value="ready" '+(only==='ready'?'selected':'')+'>四篇齊全</option><option value="missing" '+(only==='missing'?'selected':'')+'>尚缺草稿</option><option value="changed" '+(only==='changed'?'selected':'')+'>資料異動</option></select><button class="btn secondary" data-cf="sample">'+(showSamples?'返回實際工作台':'觀看示範資料')+'</button><button class="btn" data-cf="bulk" '+(showSamples?'disabled':'')+'>為可售車補齊草稿</button></div>'
+    +'<div class="cf-alert">'+(window.CarmanDemoFleet?.active?'正在檢視五台 AI 生成測試車：每台有 AI 車照與 Facebook／Threads 四篇專屬廣告，總計 20 篇；與正式車源隔離，禁止刊登。':showSamples?'目前使用 5 台虛構練習車源；下方所有文案都不是實際庫存，不能對外發布。':'目前是原有 DriveOS 的車源資料。未串接車商每日庫存與 GPT API；按「建立草稿」產生的是安全套版，不是 AI 產文。')+'</div>'
+    +'<div class="cf-toolbar"><input id="cf-query" aria-label="搜尋車款" placeholder="搜尋車型、品牌、年份或車源編號…" value="'+html(query)+'"><select id="cf-filter" aria-label="廣告完成度"><option value="all">所有車輛</option><option value="ready" '+(only==='ready'?'selected':'')+'>四篇齊全</option><option value="missing" '+(only==='missing'?'selected':'')+'>尚缺草稿</option><option value="changed" '+(only==='changed'?'selected':'')+'>資料異動</option></select><button class="btn secondary" data-cf="sample">'+(window.CarmanDemoFleet?.active?'結束 AI 測試，返回正式車源':showSamples?'返回實際工作台':'觀看示範資料')+'</button><button class="btn" data-cf="bulk" '+(showSamples||window.CarmanDemoFleet?.active?'disabled':'')+'>為可售車補齊草稿</button></div>'
     +'<div class="cf-mini-stats"><div><b id="cf-count">'+filtered.length+'</b> 台車源　·　<b>'+covered+'</b> 台四篇齊全</div><small>'+html(message||'不重複列出同一台車的四篇文案')+'</small></div>'
     +'<div class="cf-list">'+(filtered.map(c=>{const a=variants.map(v=>ad(st,c,v[0])),cnt=a.filter(Boolean).length,changed=a.some(p=>p&&p.factorySignature!==signature(c));
-      return '<article class="cf-row" data-cf-row data-name="'+html((safeTitle(c)+' '+c.id).toLowerCase())+'" data-complete="'+(cnt===4&&!changed)+'" data-missing="'+(cnt!==4)+'" data-changed="'+changed+'"><div class="cf-photo">'+image(c)+'</div><div class="cf-information"><b>'+html(safeTitle(c))+'</b><div class="cf-detail">'+html(c.id)+' · '+money(c.price)+' · '+html(c.status||'待確認')+' · '+((window.VehiclePhotos?.gallery?.(c)||[]).length)+' 張照片</div><div class="cf-labels"><span class="cf-state '+(cnt===4?'cf-done':'')+'">'+(showSamples?'4 篇示範':cnt+' / 4 篇草稿')+'</span>'+(changed?'<span class="cf-state cf-warn">需重新審核</span>':'')+(sample(c)?'<span>示範車源</span>':'')+'</div></div><button class="btn secondary" data-cf="open" data-id="'+html(c.id)+'">查看四篇 ›</button></article>';
+      return '<article class="cf-row" data-cf-row data-name="'+html((safeTitle(c)+' '+c.id).toLowerCase())+'" data-complete="'+(cnt===4&&!changed)+'" data-missing="'+(cnt!==4)+'" data-changed="'+changed+'"><div class="cf-photo">'+image(c)+'</div><div class="cf-information"><b>'+html(safeTitle(c))+'</b><div class="cf-detail">'+html(c.id)+' · '+money(c.price)+' · '+html(c.status||'待確認')+' · '+((window.VehiclePhotos?.gallery?.(c)||[]).length)+' 張照片</div><div class="cf-labels"><span class="cf-state '+(cnt===4?'cf-done':'')+'">'+(window.CarmanDemoFleet?.active?'4 / 4 篇測試廣告':showSamples?'4 篇示範':cnt+' / 4 篇草稿')+'</span>'+(changed?'<span class="cf-state cf-warn">需重新審核</span>':'')+(sample(c)?'<span>示範車源</span>':'')+'</div></div><button class="btn secondary" data-cf="open" data-id="'+html(c.id)+'">查看四篇 ›</button></article>';
     }).join('')||'<div class="cf-empty">目前沒有符合條件的車輛。等取得楊哥授權庫存後，從原本「車源匯入」加入資料即可。</div>')+'</div>'
     +'<div class="hint" style="margin-top:18px">四份稿件與車源 ID 綁定；若價格或其他資料有變更會顯示需重審。舊版審核發布工作台仍保留，不會自動把範例發布出去。</div>';
   }
@@ -87,7 +87,7 @@ var AdFactoryUI=(function(){
     if(action==='close'){selectedId='';document.getElementById('cf-overlay')?.remove();}
     if(action==='tab'){const cur=document.getElementById('cf-content');const car=cars().find(c=>c.id===selectedId);const original=car?(ad(state(),car,selectedVariant)?.content||template(car,selectedVariant)):'';if(cur&&!sample(car)&&cur.value!==original&&!confirm('這份文案尚未儲存，切換版本會遺失修改。確定切換？'))return;selectedVariant=t.dataset.key;drawer();}
     if(action==='copy'){const x=document.getElementById('cf-content');if(!x)return;const clipboard=navigator.clipboard?.writeText?.(x.value);if(clipboard)clipboard.catch(()=>{x.select();document.execCommand('copy');});else{x.select();document.execCommand('copy');}message='已複製';}
-    if(action==='sample'){showSamples=!showSamples;query='';only='all';if(typeof navigate==='function')navigate('adFactory');}
+    if(action==='sample'){if(window.CarmanDemoFleet?.active){CarmanDemoFleet.disable();showSamples=false;}else showSamples=!showSamples;query='';only='all';if(typeof navigate==='function')navigate('adFactory');}
     if(action==='bulk')bulk();
     if(action==='save')saveCurrent(false);
     if(action==='approve')saveCurrent(true);
