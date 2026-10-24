@@ -1,0 +1,51 @@
+
+/* Carman V5.2: classic DriveOS palette, scoped to the new factory */
+.cf-intro{background:linear-gradient(115deg,#12346d,#1688a5);border-radius:20px;padding:27px 29px;margin:0 0 20px;color:#fff;box-shadow:0 8px 24px #1e5e940d}
+.cf-intro h2{font-size:25px;color:#fff;margin:4px 0 10px;letter-spacing:-.4px}
+.cf-intro p{color:#dbedff;font-size:14px;line-height:1.9;max-width:720px}
+.cf-chip{display:inline-flex;font-size:11px;font-weight:700;background:#e9f2ff;border-radius:30px;padding:6px 11px;color:#1d68bc}
+.cf-intro .cf-chip{background:#e9f2ff;color:#2169bd}
+.cf-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:17px 0}
+.cf-toolbar input{flex:1;min-width:220px;max-width:560px}
+.cf-toolbar select{min-width:150px}
+.cf-toolbar .btn{white-space:nowrap}
+.cf-alert{background:#eaf4ff;color:#476d97;padding:13px 17px;border:1px solid #cfe3fa;border-radius:13px;font-size:12px;line-height:1.8;margin-bottom:16px}
+.cf-mini-stats{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:15px}
+.cf-mini-stats b{color:#205fae;font-size:19px}
+.cf-mini-stats small{color:#8295af}
+.cf-list{display:grid;gap:10px}
+.cf-row{border:1px solid #e0e9f4;border-radius:16px;background:white;padding:12px 15px;display:flex;gap:16px;align-items:center;box-shadow:0 3px 13px #233e6309}
+.cf-row:hover{border-color:#b6d4f4;background:#fcfdff}
+.cf-photo{width:96px;height:68px;background:#eef5fc;border:1px solid #e0e9f4;border-radius:12px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#8ba5bd;font-size:12px}
+.cf-photo img{width:100%;height:100%;object-fit:cover}
+.cf-information{flex:1;min-width:0}
+.cf-information b{font-size:15px;color:#20334e}
+.cf-information .cf-detail{font-size:12px;color:#8494aa;margin:4px 0}
+.cf-information .cf-labels{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11px;color:#6380a4}
+.cf-state{display:inline-block;font-size:11px;padding:4px 8px;border-radius:7px;background:#edf4ff;color:#2866ae;font-weight:700}
+.cf-state.cf-warn{background:#fff2df;color:#9f6329}
+.cf-state.cf-done{background:#e7f7f2;color:#15816b}
+.cf-empty{padding:38px 22px;border:1px dashed #d8e5f4;background:white;text-align:center;color:#8497b0;border-radius:16px}
+.cf-modal{position:fixed;inset:0;z-index:110;display:flex;justify-content:flex-end}
+.cf-shade{position:absolute;inset:0;background:#071b36a3}
+.cf-panel{position:relative;background:#fff;box-shadow:-20px 0 50px #0e29403d;width:min(650px,94vw);max-width:100%;height:100vh;display:flex;flex-direction:column;animation:cfEnter .2s ease}
+@keyframes cfEnter{from{transform:translateX(20px);opacity:.8}to{transform:translateX(0);opacity:1}}
+.cf-panel-head{border-bottom:1px solid #e5ebf4;padding:22px 26px 17px}
+.cf-panel-head .cf-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.cf-panel-head h2{font-size:23px;margin:8px 0;color:#172e50}
+.cf-panel-head p{font-size:12px;color:#788aa2}
+.cf-variants{display:flex;gap:7px;flex-wrap:wrap;margin:17px 0 0}
+.cf-variants button{padding:10px 13px;font-size:12px;border:1px solid #dce7f6;background:#f4f8ff;color:#557298;border-radius:10px;cursor:pointer;font-weight:700}
+.cf-variants button.active{background:#2569dd;color:#fff;border-color:#2569dd}
+.cf-panel-body{padding:25px 28px;overflow:auto;flex:1}
+.cf-panel-body .cf-photo{width:130px;height:92px}
+.cf-car-head{display:flex;gap:15px;margin-bottom:20px;align-items:center}
+.cf-car-head b{font-size:16px;color:#1a365a}
+.cf-car-head p{color:#7e8ba0;font-size:12px;margin:8px 0 0}
+.cf-panel-body textarea{min-height:260px;width:100%;line-height:1.8;font-size:14px;padding:16px 18px}
+.cf-panel-body label{font-size:13px;font-weight:750;color:#375779}
+.cf-panel-foot{padding:18px 26px;border-top:1px solid #e5ecf5;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cf-panel-foot small{font-size:11px;color:#8b9ab0}
+.cf-info{font-size:12px;color:#677f9e;line-height:1.8;margin:12px 0}
+.cf-notice{font-size:12px;color:#986938;background:#fff7eb;border:1px solid #f6e3c4;padding:10px 13px;border-radius:10px;margin:10px 0}
+@media(max-width:750px){.cf-intro{padding:22px}.cf-intro h2{font-size:20px}.cf-row{gap:10px;padding:11px}.cf-photo{width:70px;height:60px}.cf-row>.btn{padding:8px 10px;font-size:11px}.cf-information b{font-size:13px}.cf-information .cf-detail{font-size:11px}.cf-panel{width:100vw}.cf-panel-head{padding:17px}.cf-panel-body{padding:18px}.cf-panel-foot{padding:14px}}
